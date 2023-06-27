@@ -33,9 +33,9 @@ def monta_titulo(perturbacao):
     ''' Função que monta título do plot final '''
     labels = ['DVt','Dalpha','Dbeta','Dp','Dq','Dr','Dpsi','Dtheta','Dphi','Dh']
     dict_perturbacao = dict(zip(labels, perturbacao))
-    print(dict_perturbacao)
+    # print(dict_perturbacao)
 
     title = "Resultado da simulação ("
     title = title + ', '.join({f"{k} = {v}" for k, v in dict_perturbacao.items() if v != 0 }) + ')'
 
-    return title
+    return title, dict_perturbacao

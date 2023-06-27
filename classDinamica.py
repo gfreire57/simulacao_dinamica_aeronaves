@@ -1,4 +1,5 @@
 # projeto_controle_mirage.ipynb
+import os
 import numpy as np
 from utils import *
 from constants import *
@@ -15,6 +16,10 @@ from forcas_momentos import forcas_momentos
 
 # classe
 class simDinamica():
+    print('''Classe simDinamica() aceita 2 parametros iniciais: condições de voo (lista) e tempo de voo (inteiro).
+    * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
+    * tempo_voo: inteiro, ex: 300 segundos
+    ''')
     def __init__(self, condicoesVoo: list, tempo_voo) -> None:
         # condicoes iniciais
         self.He          = condicoesVoo[0]
@@ -37,9 +42,10 @@ class simDinamica():
         self.plot_results(results=resposta_dinamica, perturbacao=perturbacao)
 
     def calcEquilibrio(self, X0):
+        print("Rodando minimização da função de equilíbrio...")
         min_values = optimize.minimize(self.equilibrio, X0, tol=1e-20) # sao 7 iniciais
 
-        print(f'''Valores para equilíbrio:
+        print(f'''      Valores para equilíbrio:
                 delta_profundor: {min_values.x[0]:.3f} rad
                 delta_aileron: {min_values.x[1]:.3f} rad
                 delta_leme: {min_values.x[2]:.3f} rad
@@ -47,8 +53,8 @@ class simDinamica():
                 alpha: {min_values.x[4]:.3f} rad
                 theta: {min_values.x[5]:.3f} rad
                 phi: {min_values.x[6]:.3f} rad''')
-        print(min_values)
-        print(min_values.fun)
+        # print(min_values)
+        print(f"      f_min: {min_values.fun}")
         return min_values
 
     def calcDinamica(self, resultadosEquilibrio, perturbacao):
@@ -61,27 +67,29 @@ class simDinamica():
         theta     = resultadosEquilibrio.x[5]
         phi       = resultadosEquilibrio.x[6]
 
+        print("Rodando cálculo da função de dinâmica...")
+
         p = -self.psiponto*np.sin(theta)
         q = self.psiponto*np.cos(theta)*np.sin(phi)
         r = self.psiponto*np.cos(theta)*np.cos(phi)
 
         y0 = [
             self.V_t   + perturbacao[0], #DVt,
-            alpha      + perturbacao[1], #Dalpha,
-            self.beta  + perturbacao[2], #Dbeta,
-            p          + perturbacao[3], #Dp,
-            q          + perturbacao[4], #Dq,    
-            r          + perturbacao[5], #Dr,
-            0          + perturbacao[6], #Dpsi, # psi = 0
-            theta      + perturbacao[7], #Dtheta,
-            phi        + perturbacao[8], #Dphi,
+            alpha      + perturbacao[1]/57.3, #Dalpha,
+            self.beta  + perturbacao[2]/57.3, #Dbeta,
+            p          + perturbacao[3]/57.3, #Dp,
+            q          + perturbacao[4]/57.3, #Dq,    
+            r          + perturbacao[5]/57.3, #Dr,
+            0          + perturbacao[6]/57.3, #Dpsi, # psi = 0
+            theta      + perturbacao[7]/57.3, #Dtheta,
+            phi        + perturbacao[8]/57.3, #Dphi,
             self.He    + perturbacao[9]  #Dh
         ]
         t = list(np.arange(0, self.tempo_voo, 0.1, dtype=float))
 
-        sol = solve_ivp(self.dinamica, [0, self.tempo_voo], y0, method='RK45', t_eval=t)
-        if sol.success: print(f"Solução encontrada")
-        else: raise Exception("Houve um problema na simulação.")
+        sol = solve_ivp(self.dinamica, [0, self.tempo_voo], y0, t_eval=t)
+        if sol.success: print(f"    Solução encontrada")
+        else: raise Exception("     !> Houve um problema na simulação.")
 
         return sol
 
@@ -210,7 +218,7 @@ class simDinamica():
         alpha_linha = (u*w_linha - w*u_linha)/(u**2 + w**2)
         beta_linha = (v_linha*V_t - v*V_t_linha)/(np.cos(beta)*V_t**2)
         
-        print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
+        # print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
         dY = [
             V_t_linha,
             alpha_linha,
@@ -254,9 +262,8 @@ class simDinamica():
         }
 
         fig = plt.figure(figsize=(10,8), layout="constrained")
-
-        # plt.suptitle("Your Chart's subtitle")      
-        plt.suptitle(monta_titulo(perturbacao=perturbacao),
+        titulo, dict_perturbacao = monta_titulo(perturbacao=perturbacao)
+        plt.suptitle(titulo,
             fontsize='large',
             # loc='left',
             fontweight='bold',
@@ -313,4 +320,13 @@ class simDinamica():
         # ax2.plot(t1, f2(t1))
         # ax2.set_title("Velocidade x Tempo")
 
-        plt.show()
+        # plt.show()
+        if not os.path.exists('results'):
+            # If it doesn't exist, create it
+            os.makedirs('results')
+
+        image_path = os.path.join(os.getcwd(), 'results')
+        fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
+        save_path = os.path.join(image_path, fig_title)
+        plt.savefig(save_path, dpi=300)
+        print(f"Gráfico salvo na pasta {save_path}")

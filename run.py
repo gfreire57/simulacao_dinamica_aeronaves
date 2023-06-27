@@ -21,7 +21,7 @@ X0=[
 ]
 
 perturbacao = [
-    0, #DVt
+    10, #DVt
     0, #Dalpha
     0, #Dbeta
     0, #Dp
@@ -34,8 +34,14 @@ perturbacao = [
 ]
 simulacao = simDinamica(condicoes_voo, tempo_voo)
 
+# OPÇÃO DE RODAR DIRETAMENTE
 simulacao.runSimulation(
     X0_equilibrio             = X0,
     perturbacao               = perturbacao
 )
+
+# # OPÇÃO DE RODAR MODULO POR MODULO
+# valEquilibrio = simulacao.calcEquilibrio(X0=X0)
+# resposta_dinamica = simulacao.calcDinamica(resultadosEquilibrio=valEquilibrio, perturbacao=perturbacao)
+# simulacao.plot_results(resposta_dinamica)
 
