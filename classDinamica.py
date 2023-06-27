@@ -324,7 +324,6 @@ class simDinamica():
         if not os.path.exists('results'):
             # If it doesn't exist, create it
             os.makedirs('results')
-
         image_path = os.path.join(os.getcwd(), 'results')
         fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
         save_path = os.path.join(image_path, fig_title)
