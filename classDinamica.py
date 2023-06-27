@@ -16,10 +16,17 @@ from forcas_momentos import forcas_momentos
 
 # classe
 class simDinamica():
-    print('''Classe simDinamica() aceita 2 parametros iniciais: condições de voo (lista) e tempo de voo (inteiro).
+    print('''Classe simDinamica() aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
     * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
     * tempo_voo: inteiro, ex: 300 segundos
-    ''')
+    Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-se como argumentos, na ordem:
+    * delta_profundor (°)
+    * delta_aileron (°)
+    * delta_leme (°)
+    * pi_comando (% de potência do motor)
+    * alpha (°)
+    * theta (°)
+    * phi (°)''')
     def __init__(self, condicoesVoo: list, tempo_voo) -> None:
         # condicoes iniciais
         self.He          = condicoesVoo[0]
@@ -45,7 +52,7 @@ class simDinamica():
         print("Rodando minimização da função de equilíbrio...")
         min_values = optimize.minimize(self.equilibrio, X0, tol=1e-20) # sao 7 iniciais
 
-        print(f'''      Valores para equilíbrio:
+        print(f'''      Valores encontrados para voo em equilíbrio:
                 delta_profundor: {min_values.x[0]:.3f} rad
                 delta_aileron: {min_values.x[1]:.3f} rad
                 delta_leme: {min_values.x[2]:.3f} rad
@@ -320,12 +327,12 @@ class simDinamica():
         # ax2.plot(t1, f2(t1))
         # ax2.set_title("Velocidade x Tempo")
 
-        # plt.show()
-        if not os.path.exists('results'):
-            # If it doesn't exist, create it
-            os.makedirs('results')
-        image_path = os.path.join(os.getcwd(), 'results')
-        fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
-        save_path = os.path.join(image_path, fig_title)
-        plt.savefig(save_path, dpi=300)
-        print(f"Gráfico salvo na pasta {save_path}")
+        plt.show()
+        # if not os.path.exists('results'):
+        #     # If it doesn't exist, create it
+        #     os.makedirs('results')
+        # image_path = os.path.join(os.getcwd(), 'results')
+        # fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
+        # save_path = os.path.join(image_path, fig_title)
+        # plt.savefig(save_path, dpi=300)
+        # print(f"Gráfico salvo na pasta {save_path}")
