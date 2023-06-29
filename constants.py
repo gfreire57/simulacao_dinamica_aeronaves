@@ -56,3 +56,7 @@ c6 = Ixz/Iyy
 c7 = 1/Iyy
 c8 = (Ixx * (Ixx - Iyy)+Ixz**2)/gamma
 c9 = (Ixx)/gamma
+
+
+# LABELS PARA MONTAGEM DOS TÍTULOS DA IMAGEM E DO ARQUIVO PNG GERADO
+labels = ['DVt','Dalpha','Dbeta','Dp','Dq','Dr','Dpsi','Dtheta','Dphi','Dh']
