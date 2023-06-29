@@ -18,8 +18,8 @@ Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-s
     * theta (°)
     * phi (°)
 
----SIMULAÇÃO DE DOUBLET---
-    Para simulação de doublet, mais 3 itens devem ser passados para simDinamica:
+## SIMULAÇÃO DE DOUBLET
+Para simulação de doublet, mais 3 itens devem ser passados para simDinamica:
     * vet_tempo: vetor com dados de tempo
     * doublet: vetor com dados de posição da superfície/potência do motor em graus e em %, respectivamente.
     * superfície_doublet: superfície perturbada: 'profundor', 'aileron', 'leme', 'motor'.
@@ -27,9 +27,10 @@ Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-s
     OBS 2: Tempo de voo deve ser igual ao ultimo item de vet_tempo caso deseja-se rodar simulação de doublet
 
 Exemplo de simulação com doublet de profundor:
+    
     vet_tempo     = [0, 0.9, 1.0, 1.9, 2.0, 2.9, 3.0, 10]
     doublet       = [0,   0,   1,   1,  -1,  -1,   0,  0]
     superficie_doublet = 'profundor'
 
-    Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
+Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
     de -1° de 2 a 3 segundos, retornando à zero depois de 3s.
