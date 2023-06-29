@@ -5,9 +5,11 @@ from utils import *
 from constants import *
 from scipy import optimize
 from scipy.integrate import solve_ivp
+from scipy.interpolate import interp1d
 # Modelo do motor da anv hospedeiro
 from motor import T_motor_anv
 from forcas_momentos import forcas_momentos
+import matplotlib.pyplot as plt
 
 '''
    Programa de simulação dinâmica do laboratório de dinâmica de voo (EMA017).
@@ -27,13 +29,30 @@ class simDinamica():
     * alpha (°)
     * theta (°)
     * phi (°)''')
-    def __init__(self, condicoesVoo: list, tempo_voo) -> None:
+    def __init__(
+            self, 
+            condicoesVoo: list, 
+            tempo_voo, 
+            vet_tempo             : list[float] = [],
+            doublet               : list[float] = [], # em graus
+            superficie_doublet    : str = '', # 'profundor', 'aileron', 'leme', 'tracao'
+    ):
         # condicoes iniciais
         self.He          = condicoesVoo[0]
         self.V_t         = condicoesVoo[1]
         self.beta        = condicoesVoo[2]/57.3 # de grau para rad
         self.psiponto    = condicoesVoo[3]/57.3 # de grau para rad
-        self.tempo_voo = tempo_voo
+        self.tempo_voo   = tempo_voo
+
+        if bool(vet_tempo) and bool(doublet):
+            # Verifica se comprimentos são iguais e se todos os valores são float
+            if (len(vet_tempo) == len(doublet)):# and (all(isinstance(x, float) for x in vet_tempo)) and (all(isinstance(x, float) for x in doublet)):
+                self.is_doublet   = True
+                self.vet_tempo    = vet_tempo
+                self.doublet      = doublet # conversão para rad feita em calcDinamica
+                self.superficie_doublet = superficie_doublet
+            else                  : 
+                raise Exception("Há algum problema com os vetores vet_tempo e doublet. Verifique.")
 
     def runSimulation(self, X0_equilibrio, perturbacao):
         ''' Função que roda toda a simulação '''
@@ -43,7 +62,7 @@ class simDinamica():
 
         resposta_dinamica = self.calcDinamica(
             resultadosEquilibrio=valEquilibrio, 
-            perturbacao=perturbacao
+            perturbacao=perturbacao, 
         )
         
         self.plot_results(results=resposta_dinamica, perturbacao=perturbacao)
@@ -56,7 +75,7 @@ class simDinamica():
                 delta_profundor: {min_values.x[0]:.3f} rad
                 delta_aileron: {min_values.x[1]:.3f} rad
                 delta_leme: {min_values.x[2]:.3f} rad
-                pi_comando: {min_values.x[3]:.3f} rad
+                pi_comando: {min_values.x[3]:.3f} %
                 alpha: {min_values.x[4]:.3f} rad
                 theta: {min_values.x[5]:.3f} rad
                 phi: {min_values.x[6]:.3f} rad''')
@@ -64,12 +83,12 @@ class simDinamica():
         print(f"      f_min: {min_values.fun}")
         return min_values
 
-    def calcDinamica(self, resultadosEquilibrio, perturbacao):
+    def calcDinamica(self, resultadosEquilibrio, perturbacao): #, vet_tempo: list = [], doublet: list = []):
 
-        self.delta_profundor   = resultadosEquilibrio.x[0]
-        self.delta_aileron     = resultadosEquilibrio.x[1]
-        self.delta_leme        = resultadosEquilibrio.x[2]
-        self.pi_comando        = resultadosEquilibrio.x[3]
+        self.delta_profundor = resultadosEquilibrio.x[0]
+        self.delta_aileron   = resultadosEquilibrio.x[1]
+        self.delta_leme      = resultadosEquilibrio.x[2]
+        self.pi_comando      = resultadosEquilibrio.x[3]
         alpha     = resultadosEquilibrio.x[4]
         theta     = resultadosEquilibrio.x[5]
         phi       = resultadosEquilibrio.x[6]
@@ -92,9 +111,23 @@ class simDinamica():
             phi        + perturbacao[8]/57.3, #Dphi,
             self.He    + perturbacao[9]  #Dh
         ]
-        t = list(np.arange(0, self.tempo_voo, 0.1, dtype=float))
 
-        sol = solve_ivp(self.dinamica, [0, self.tempo_voo], y0, t_eval=t)
+        t_span = [0, self.tempo_voo]
+        t_eval = list(np.arange(0, self.tempo_voo, 0.1, dtype=float)) # precisa ter o mesmo num de elementso que doublet
+        if self.is_doublet:
+            # se houver doublet, vai criar um objeto de interpolação que 
+            # irá incrementar o valor ao longo da sim dim.
+            if self.superficie_doublet != "tracao":
+                self.doublet = np.divide(self.doublet, 57.3) # conversão graus para rad
+            self.doublet_interp = interp1d(x=self.vet_tempo, y=self.doublet)
+            # plota
+            xnew = np.arange(0, 0.1, 10)
+            ynew = self.doublet_interp(xnew)
+            plt.plot(self.vet_tempo, self.doublet, '-', xnew, ynew, '-')
+            plt.show()
+
+        sol = solve_ivp(self.dinamica, t_span=t_span, y0=y0, t_eval=t_eval)
+
         if sol.success: print(f"    Solução encontrada")
         else: raise Exception("     !> Houve um problema na simulação.")
 
@@ -177,27 +210,43 @@ class simDinamica():
         phi           = y0[8]
         He_variable   = y0[9]
         
+        delta_profundor_DINAMICA    = self.delta_profundor
+        delta_aileron_DINAMICA      = self.delta_aileron
+        delta_leme_DINAMICA         = self.delta_leme
+        pi_comando_DINAMICA         = self.pi_comando
+        ######### DOUBLET
+        if self.is_doublet:
+            if   self.superficie_doublet == 'profundor':
+                delta_profundor_DINAMICA = self.delta_profundor + self.doublet_interp(t)
+            elif self.superficie_doublet == 'aileron':
+                delta_aileron_DINAMICA   = self.delta_aileron + self.doublet_interp(t)
+            elif self.superficie_doublet == 'leme':
+                delta_leme_DINAMICA      = self.delta_leme + self.doublet_interp(t)
+            elif self.superficie_doublet == 'tracao':
+                pi_comando_DINAMICA      = self.pi_comando + self.doublet_interp(t)
+            # print(f"tempo: {t} -- delta_profundor: {delta_profundor_DINAMICA}")
+        #########
         _, _, rho = atmPadrao(h=He_variable)
         alpha_linha = 0 # ?
         alpha_f = 0
         C_L_alpha_linha = 0 # ? Considera como 0 mesmo para simplificar (relevante para vibrações, movs rapidos)
         C_L_0 = 0 # ?
 
-        # print(f"delta_leme: {self.delta_leme} /delta_profundor: {self.delta_profundor} /delta_aileron: {self.delta_aileron}")
+        # print(f"delta_leme: {delta_leme_DINAMICA} /delta_profundor: {delta_profundor_DINAMICA} /delta_aileron: {delta_aileron_DINAMICA}")
         
-        CL = C_L_0 + (C_L_alpha * alpha) + (C_L_delta_p * self.delta_profundor) + (C_L_q * (q * c)/V_t)# + (C_L_alpha_linha * (alpha_linha * c)/V_t)
+        CL = C_L_0 + (C_L_alpha * alpha) + (C_L_delta_p * delta_profundor_DINAMICA) + (C_L_q * (q * c)/V_t)# + (C_L_alpha_linha * (alpha_linha * c)/V_t)
         CD = C_D_0 + k * CL**2
-        CYa = (C_y_beta * beta) + (C_y_delta_a * self.delta_aileron)  + (C_y_delta_r * self.delta_leme)
+        CYa = (C_y_beta * beta) + (C_y_delta_a * delta_aileron_DINAMICA)  + (C_y_delta_r * delta_leme_DINAMICA)
         
         CX = -(np.cos(alpha) * np.cos(beta) * CD) - (np.cos(alpha) * np.sin(beta) * CYa) + (np.sin(alpha) * CL)
         CY = -np.sin(beta) * CD + np.cos(beta) * CYa
         CZ = (-np.sin(alpha) * np.cos(beta) * CD) - (np.sin(alpha) * np.sin(beta) * CYa) - (np.cos(alpha) * CL)
         
-        Cm = C_m_0 + (C_m_alpha*alpha) + (C_m_delta_p*self.delta_profundor) + C_m_q*(q*c)/V_t
-        Cn = (C_n_beta*beta) + (C_n_delta_r*self.delta_leme) + (C_n_delta_a*self.delta_aileron) + C_n_r*(r*b)/V_t + C_n_p*(p*b)/V_t
-        Cr = (C_r_beta*beta) + (C_r_delta_r*self.delta_leme) + (C_r_delta_a*self.delta_aileron) + C_r_p*(p*b)/V_t + C_r_r*(r*b)/V_t
+        Cm = C_m_0 + (C_m_alpha*alpha) + (C_m_delta_p*delta_profundor_DINAMICA) + C_m_q*(q*c)/V_t
+        Cn = (C_n_beta*beta) + (C_n_delta_r*delta_leme_DINAMICA) + (C_n_delta_a*delta_aileron_DINAMICA) + C_n_r*(r*b)/V_t + C_n_p*(p*b)/V_t
+        Cr = (C_r_beta*beta) + (C_r_delta_r*delta_leme_DINAMICA) + (C_r_delta_a*delta_aileron_DINAMICA) + C_r_p*(p*b)/V_t + C_r_r*(r*b)/V_t
         
-        T = T_motor_anv(V_t, self.pi_comando, rho)
+        T = T_motor_anv(V_t, pi_comando_DINAMICA, rho)
 
         Fx, Fy, Fz, M, N, Lr = forcas_momentos(T, alpha_f, rho, V_t, CX, CY, CZ, Cm, Cn, Cr)
         
@@ -269,7 +318,13 @@ class simDinamica():
         }
 
         fig = plt.figure(figsize=(10,8), layout="constrained")
-        titulo, dict_perturbacao = monta_titulo(perturbacao=perturbacao)
+
+        titulo = monta_titulo(
+            perturbacao=perturbacao, 
+            is_doublet=self.is_doublet, 
+            superficie_doublet=self.superficie_doublet
+        )
+        
         plt.suptitle(titulo,
             fontsize='large',
             # loc='left',
@@ -327,12 +382,16 @@ class simDinamica():
         # ax2.plot(t1, f2(t1))
         # ax2.set_title("Velocidade x Tempo")
 
+        if not os.path.exists('results'):
+            # If it doesn't exist, create it
+            os.makedirs('results')
+        image_path = os.path.join(os.getcwd(), 'results')
+        if self.is_doublet:
+            fig_title = "simDim__doublet_"+ self.superficie_doublet + ".png"
+        else:
+            dict_perturbacao = dicionarioValoresPerturbacao(perturbacao=perturbacao)
+            fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
+        save_path = os.path.join(image_path, fig_title)
+        plt.savefig(save_path, dpi=300)
         plt.show()
-        # if not os.path.exists('results'):
-        #     # If it doesn't exist, create it
-        #     os.makedirs('results')
-        # image_path = os.path.join(os.getcwd(), 'results')
-        # fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
-        # save_path = os.path.join(image_path, fig_title)
-        # plt.savefig(save_path, dpi=300)
-        # print(f"Gráfico salvo na pasta {save_path}")
+        print(f"Gráfico salvo na pasta:\n{save_path}")
