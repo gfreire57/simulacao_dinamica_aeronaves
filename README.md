@@ -1,6 +1,10 @@
 # simulacao_dinamica_aeronaves
 Programa de simulação dinâmica simples de aeronaves. Permite analisar o comportamento variável da aeronave sob perturbações, como doublet, rajadas, rolamento puro, degrau, etc.
 
+Autor: Gabriel Hasmann Freire Moraes
+2023-06
+
+
 # Manual de uso
 Classe simDinamica aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
     * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
