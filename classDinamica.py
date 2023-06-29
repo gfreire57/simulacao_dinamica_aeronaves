@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 # classe
 class simDinamica():
-    print('''
+    '''
     Classe simDinamica aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
         * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
         * tempo_voo: inteiro, ex: 300 segundos
@@ -39,15 +39,15 @@ class simDinamica():
         OBS 1: os vetores vet_tempo e doublet devem ser do mesmo tamanho (ver exemplo abaixo)
         OBS 2: Tempo de voo deve ser igual ao ultimo item de vet_tempo caso deseja-se rodar simulação de doublet
 
-    Exemplo de simulação com doublet de profundor:
-        vet_tempo     = [0, 0.9, 1.0, 1.9, 2.0, 2.9, 3.0, 10]
-        doublet       = [0,   0,   1,   1,  -1,  -1,   0,  0]
-        superficie_doublet = 'profundor'
+        Exemplo de simulação com doublet de profundor:
+            vet_tempo     = [0, 0.9, 1.0, 1.9, 2.0, 2.9, 3.0, 10]
+            doublet       = [0,   0,   1,   1,  -1,  -1,   0,  0]
+            superficie_doublet = 'profundor'
 
-        Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
-        de -1° de 2 a 3 segundos, retornando à zero depois de 3s.
-    ''')
-
+            Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
+            de -1° de 2 a 3 segundos, retornando à zero depois de 3s.
+    '''
+    print("Leia o arquivo ReadMe antes de usar a classe! Lá estão as instruções básicas.")
     def __init__(
             self, 
             condicoesVoo          : list,
@@ -303,7 +303,7 @@ class simDinamica():
         alpha_linha = (u*w_linha - w*u_linha)/(u**2 + w**2)
         beta_linha = (v_linha*V_t - v*V_t_linha)/(np.cos(beta)*V_t**2)
         
-        print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
+        # print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
         dY = [
             V_t_linha,
             alpha_linha,

@@ -4,7 +4,6 @@ Programa de simulação dinâmica simples de aeronaves. Permite analisar o compo
 Autor: Gabriel Hasmann Freire Moraes
 2023-06
 
-
 # Manual de uso
 Classe simDinamica aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
     * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
