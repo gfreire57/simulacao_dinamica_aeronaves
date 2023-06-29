@@ -1,5 +1,6 @@
 # utils.py
 import numpy as np
+from constants import labels
 
 def atmPadrao(h: float, unidade: str = 'metro'):
     ''' Cálculo de atm padrão dada a altitude (em pés ou metros) '''
@@ -29,13 +30,20 @@ def atmPadrao(h: float, unidade: str = 'metro'):
 
     return Temp, Pressao, rho
 
-def monta_titulo(perturbacao):
+def dicionarioValoresPerturbacao(perturbacao):
+    ''' Monta dicionario auxiliar para uso em titulos. '''
+    return dict(zip(labels, perturbacao)) 
+
+def monta_titulo(perturbacao, is_doublet: bool = False, superficie_doublet: str = None):
     ''' Função que monta título do plot final '''
-    labels = ['DVt','Dalpha','Dbeta','Dp','Dq','Dr','Dpsi','Dtheta','Dphi','Dh']
-    dict_perturbacao = dict(zip(labels, perturbacao))
+    # dict_perturbacao = dict(zip(labels, perturbacao))
     # print(dict_perturbacao)
 
     title = "Resultado da simulação ("
-    title = title + ', '.join({f"{k} = {v}" for k, v in dict_perturbacao.items() if v != 0 }) + ')'
-
-    return title, dict_perturbacao
+    if is_doublet:
+        title += f"doublet de {superficie_doublet})"
+        return title
+    else:
+        dict_perturbacao = dicionarioValoresPerturbacao(perturbacao=perturbacao)
+        title = title + ', '.join({f"{k} = {v}" for k, v in dict_perturbacao.items() if v != 0 }) + ')'
+        return title
