@@ -45,7 +45,7 @@ class simDinamica():
         superficie_doublet = 'profundor'
 
         Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
-        de -1° de2 a 3 segundos, retornando à zero depois de 3s.
+        de -1° de 2 a 3 segundos, retornando à zero depois de 3s.
     ''')
 
     def __init__(
