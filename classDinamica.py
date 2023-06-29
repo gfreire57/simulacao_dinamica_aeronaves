@@ -18,25 +18,44 @@ import matplotlib.pyplot as plt
 
 # classe
 class simDinamica():
-    print('''Classe simDinamica() aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
-    * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
-    * tempo_voo: inteiro, ex: 300 segundos
+    print('''
+    Classe simDinamica aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
+        * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
+        * tempo_voo: inteiro, ex: 300 segundos
     Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-se como argumentos, na ordem:
-    * delta_profundor (°)
-    * delta_aileron (°)
-    * delta_leme (°)
-    * pi_comando (% de potência do motor)
-    * alpha (°)
-    * theta (°)
-    * phi (°)''')
+        * delta_profundor (°)
+        * delta_aileron (°)
+        * delta_leme (°)
+        * pi_comando (% de potência do motor)
+        * alpha (°)
+        * theta (°)
+        * phi (°)
+
+    ---SIMULAÇÃO DE DOUBLET---
+        Para simulação de doublet, mais 3 itens devem ser passados para simDinamica:
+        * vet_tempo: vetor com dados de tempo
+        * doublet: vetor com dados de posição da superfície/potência do motor em graus e em %, respectivamente.
+        * superfície_doublet: superfície perturbada: 'profundor', 'aileron', 'leme', 'motor'.
+        OBS 1: os vetores vet_tempo e doublet devem ser do mesmo tamanho (ver exemplo abaixo)
+        OBS 2: Tempo de voo deve ser igual ao ultimo item de vet_tempo caso deseja-se rodar simulação de doublet
+
+    Exemplo de simulação com doublet de profundor:
+        vet_tempo     = [0, 0.9, 1.0, 1.9, 2.0, 2.9, 3.0, 10]
+        doublet       = [0,   0,   1,   1,  -1,  -1,   0,  0]
+        superficie_doublet = 'profundor'
+
+        Profundor terá perturbação de +1° entre 1 e 2 segundos e depois
+        de -1° de2 a 3 segundos, retornando à zero depois de 3s.
+    ''')
+
     def __init__(
             self, 
-            condicoesVoo: list, 
-            tempo_voo, 
+            condicoesVoo          : list,
+            tempo_voo             : int,
             vet_tempo             : list[float] = [],
             doublet               : list[float] = [], # em graus
             superficie_doublet    : str = '', # 'profundor', 'aileron', 'leme', 'tracao'
-    ):
+    ): 
         # condicoes iniciais
         self.He          = condicoesVoo[0]
         self.V_t         = condicoesVoo[1]
@@ -44,8 +63,11 @@ class simDinamica():
         self.psiponto    = condicoesVoo[3]/57.3 # de grau para rad
         self.tempo_voo   = tempo_voo
 
+        self.is_doublet  = False
+        self.superficie_doublet = ''
+
         if bool(vet_tempo) and bool(doublet):
-            # Verifica se comprimentos são iguais e se todos os valores são float
+            # Verifica se num elementos nas duas listas são iguais e se todos os valores são float
             if (len(vet_tempo) == len(doublet)):# and (all(isinstance(x, float) for x in vet_tempo)) and (all(isinstance(x, float) for x in doublet)):
                 self.is_doublet   = True
                 self.vet_tempo    = vet_tempo
@@ -83,7 +105,7 @@ class simDinamica():
         print(f"      f_min: {min_values.fun}")
         return min_values
 
-    def calcDinamica(self, resultadosEquilibrio, perturbacao): #, vet_tempo: list = [], doublet: list = []):
+    def calcDinamica(self, resultadosEquilibrio, perturbacao):
 
         self.delta_profundor = resultadosEquilibrio.x[0]
         self.delta_aileron   = resultadosEquilibrio.x[1]
@@ -98,7 +120,8 @@ class simDinamica():
         p = -self.psiponto*np.sin(theta)
         q = self.psiponto*np.cos(theta)*np.sin(phi)
         r = self.psiponto*np.cos(theta)*np.cos(phi)
-
+        
+        # Acréscimo das perturbações
         y0 = [
             self.V_t   + perturbacao[0], #DVt,
             alpha      + perturbacao[1]/57.3, #Dalpha,
@@ -111,16 +134,19 @@ class simDinamica():
             phi        + perturbacao[8]/57.3, #Dphi,
             self.He    + perturbacao[9]  #Dh
         ]
-
+ 
         t_span = [0, self.tempo_voo]
-        t_eval = list(np.arange(0, self.tempo_voo, 0.1, dtype=float)) # precisa ter o mesmo num de elementso que doublet
+        t_eval = list(np.arange(0, self.tempo_voo, 0.01, dtype=float)) # precisa ter o mesmo num de elementso que doublet
+        
+        # no caso de doublet, criamos um objeto interp1d que irá devolver, na func 
+        # dinamica, o valor da perturbação no tempo t e irá incrementar esse valor 
+        # ao valor inicial em equilíbrio ao longo da simulação dinâmica.
         if self.is_doublet:
-            # se houver doublet, vai criar um objeto de interpolação que 
-            # irá incrementar o valor ao longo da sim dim.
             if self.superficie_doublet != "tracao":
                 self.doublet = np.divide(self.doublet, 57.3) # conversão graus para rad
-            self.doublet_interp = interp1d(x=self.vet_tempo, y=self.doublet)
-            # plota
+            self.doublet_interp = interp1d(x=self.vet_tempo, y=self.doublet) # objeto interp1d
+
+            # plota perturbação
             xnew = np.arange(0, 0.1, 10)
             ynew = self.doublet_interp(xnew)
             plt.plot(self.vet_tempo, self.doublet, '-', xnew, ynew, '-')
@@ -224,7 +250,6 @@ class simDinamica():
                 delta_leme_DINAMICA      = self.delta_leme + self.doublet_interp(t)
             elif self.superficie_doublet == 'tracao':
                 pi_comando_DINAMICA      = self.pi_comando + self.doublet_interp(t)
-            # print(f"tempo: {t} -- delta_profundor: {delta_profundor_DINAMICA}")
         #########
         _, _, rho = atmPadrao(h=He_variable)
         alpha_linha = 0 # ?
@@ -232,8 +257,6 @@ class simDinamica():
         C_L_alpha_linha = 0 # ? Considera como 0 mesmo para simplificar (relevante para vibrações, movs rapidos)
         C_L_0 = 0 # ?
 
-        # print(f"delta_leme: {delta_leme_DINAMICA} /delta_profundor: {delta_profundor_DINAMICA} /delta_aileron: {delta_aileron_DINAMICA}")
-        
         CL = C_L_0 + (C_L_alpha * alpha) + (C_L_delta_p * delta_profundor_DINAMICA) + (C_L_q * (q * c)/V_t)# + (C_L_alpha_linha * (alpha_linha * c)/V_t)
         CD = C_D_0 + k * CL**2
         CYa = (C_y_beta * beta) + (C_y_delta_a * delta_aileron_DINAMICA)  + (C_y_delta_r * delta_leme_DINAMICA)
@@ -254,27 +277,33 @@ class simDinamica():
         u = V_t * np.cos (alpha) * np.cos (beta)
         v = V_t * np.sin (beta)
         w = V_t * np.sin (alpha) * np.cos (beta)
-        # derivadas das velocidades
+
+        # derivadas das componentes da velocidade
         u_linha = r*v - q*w - g*np.sin(theta) + Fx/m
         v_linha = -r*u + p*w + g*np.sin(phi)*np.cos(theta) + Fy/m
         w_linha = q*u - p*v+ g*np.cos(phi)*np.cos(theta) + Fz/m
-
+        
+        # derivadas dos angulos de orientação da anv em relação ao referencial da terra
         phi_linha = p + np.tan(theta)*(q*np.sin(phi) + r*np.cos(phi)) # correto
         theta_linha = q*np.cos(phi) - r*np.sin(phi)
         psi_linha = (q*np.sin(phi) + r*np.cos(phi))/np.cos(theta) # correto
-
+        
+        # Taxas de rolagem (P), arfagem(Q) e guinada (R)
         P_linha = (c1 * r + c2*p)*q + c3*Lr + c4*N
         Q_linha = c5* p * r - c6*(p**2 - r**2) + c7*M
         R_linha = (c8*p - c2*r)*q + c4*Lr + c9*N # correto
-
+        
+        # Taxa da altitude
         h_linha = u*np.sin(theta) - v*np.sin(phi)*np.sin(theta) - w*np.cos(phi)*np.cos(theta)
-
+        
+        # taxa da velocidade
         V_t_linha = (u*u_linha + v*v_linha + w*w_linha)/V_t
-
+        
+        # Taxas da AoA e derrapagem
         alpha_linha = (u*w_linha - w*u_linha)/(u**2 + w**2)
         beta_linha = (v_linha*V_t - v*V_t_linha)/(np.cos(beta)*V_t**2)
         
-        # print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
+        print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
         dY = [
             V_t_linha,
             alpha_linha,
@@ -291,7 +320,8 @@ class simDinamica():
         return dY
 
     def plot_results(self, results, perturbacao):
-
+        ''' Plota resultados. '''
+        # plt.style.use('fivethirtyeight')
         V_t_linha   = results.y[0]
         alpha_linha = results.y[1]*360/(2*np.pi) # AoA
         beta_linha  = results.y[2]*360/(2*np.pi) # derrapagem
@@ -302,11 +332,7 @@ class simDinamica():
         theta_linha = results.y[7]*360/(2*np.pi)
         phi_linha   = results.y[8]*360/(2*np.pi)
         h_linha     = results.y[9]
-
         t_interval  = results.t
-
-        import matplotlib.pyplot as plt
-        # plt.style.use('fivethirtyeight')
 
         fontdict = {
             'fontsize': 9,
@@ -346,25 +372,25 @@ class simDinamica():
 
         # Plota curvas
         phi_ax.plot(t_interval, phi_linha)
-        phi_ax.set_title("Phi x t", fontdict=fontdict)
+        phi_ax.set_title("Phi (ang rolagem, rad) x t", fontdict=fontdict)
         theta_ax.plot(t_interval, theta_linha)
-        theta_ax.set_title("Theta x t", fontdict=fontdict)
+        theta_ax.set_title("Theta (ang arfagem, rad) x t", fontdict=fontdict)
         psi_ax.plot(t_interval, psi_linha)
-        psi_ax.set_title("Psi x t", fontdict=fontdict)
+        psi_ax.set_title("Psi (ang guinada, rad) x t", fontdict=fontdict)
         rolagem_ax.plot(t_interval, P_linha)
-        rolagem_ax.set_title("Rolagem (P)x t", fontdict=fontdict)
+        rolagem_ax.set_title("P (taxa rolagem, , rad/s) x t", fontdict=fontdict)
         arf_ax.plot(t_interval, Q_linha)
-        arf_ax.set_title("Arfagem (Q) x t", fontdict=fontdict)
+        arf_ax.set_title("Q (taxa arfagem, rad/s) x t", fontdict=fontdict)
         guinada_ax.plot(t_interval, R_linha)
-        guinada_ax.set_title("Guinada (R) x t", fontdict=fontdict)
+        guinada_ax.set_title("R (taxa guinada, rad/s) x t", fontdict=fontdict)
         H_ax.plot(t_interval, h_linha)
-        H_ax.set_title("Altitude (H) x t", fontdict=fontdict)
+        H_ax.set_title("Altitude (H, metros) x t", fontdict=fontdict)
         Vt_ax.plot(t_interval, V_t_linha)
-        Vt_ax.set_title("Velocidade (Vt) x t", fontdict=fontdict)
+        Vt_ax.set_title("Velocidade (Vt, m/s) x t", fontdict=fontdict)
         alpha_ax.plot(t_interval, alpha_linha)
-        alpha_ax.set_title("Alpha x t", fontdict=fontdict)
+        alpha_ax.set_title("Alpha (rad) x t", fontdict=fontdict)
         beta_ax.plot(t_interval, beta_linha)
-        beta_ax.set_title("Beta x t", fontdict=fontdict)
+        beta_ax.set_title("Beta (rad) x t", fontdict=fontdict)
 
         def annotate_axes(fig):
             for ax in fig.axes:
@@ -375,23 +401,19 @@ class simDinamica():
 
         annotate_axes(fig)
 
-        # Velocidade
-        # ax2 = plt.subplot(223)
-        # ax2.grid(visible=True)
-        # # ax2.plot(t_interval, V_t_linha)
-        # ax2.plot(t1, f2(t1))
-        # ax2.set_title("Velocidade x Tempo")
-
         if not os.path.exists('results'):
             # If it doesn't exist, create it
             os.makedirs('results')
         image_path = os.path.join(os.getcwd(), 'results')
+
         if self.is_doublet:
             fig_title = "simDim__doublet_"+ self.superficie_doublet + ".png"
         else:
             dict_perturbacao = dicionarioValoresPerturbacao(perturbacao=perturbacao)
             fig_title = "simDim__" + '_'.join({f"{k}{v}" for k, v in dict_perturbacao.items() if v != 0 }) + ".png"
+
         save_path = os.path.join(image_path, fig_title)
         plt.savefig(save_path, dpi=300)
-        plt.show()
+
         print(f"Gráfico salvo na pasta:\n{save_path}")
+        plt.show()
