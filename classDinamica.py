@@ -28,7 +28,13 @@ class simDinamica():
     * pi_comando (% de potência do motor)
     * alpha (°)
     * theta (°)
-    * phi (°)''')
+    * phi (°)
+    ---SIMULAÇÃO DE DOUBLET---
+    Para simulação de doublet, mais 3 itens devem ser passados para simDinamica:
+    * vet_tempo: vetor com dados de tempo
+    * doublet: vetor com dados de 
+    *superfície_doublet: 
+    Tempo de voo deve ser igual ao ultimo item de vet_tempo caso deseja-se rodar simulação de doublet''')
     def __init__(
             self, 
             condicoesVoo: list, 
@@ -43,6 +49,8 @@ class simDinamica():
         self.beta        = condicoesVoo[2]/57.3 # de grau para rad
         self.psiponto    = condicoesVoo[3]/57.3 # de grau para rad
         self.tempo_voo   = tempo_voo
+        self.is_doublet  = False
+        self.superficie_doublet = ''
 
         if bool(vet_tempo) and bool(doublet):
             # Verifica se comprimentos são iguais e se todos os valores são float
@@ -274,7 +282,7 @@ class simDinamica():
         alpha_linha = (u*w_linha - w*u_linha)/(u**2 + w**2)
         beta_linha = (v_linha*V_t - v*V_t_linha)/(np.cos(beta)*V_t**2)
         
-        # print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
+        print(f'''V_t_linha {V_t_linha:.2f} /alpha_linha {alpha_linha:.2f} /beta_linha {beta_linha:.2f} /P_linha {P_linha:.2f} /Q_linha {Q_linha:.2f} /R_linha {R_linha:.2f} /psi_linha {psi_linha:.2f} /theta_linha {theta_linha:.2f} /phi_linha {phi_linha:.2f} /h_linha {h_linha:.2f}''')
         dY = [
             V_t_linha,
             alpha_linha,
