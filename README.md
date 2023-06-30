@@ -7,9 +7,11 @@ Autor: Gabriel Hasmann Freire Moraes
 
 # Manual de uso
 Classe simDinamica aceita 2 parametros iniciais: condições de voo (vetor) e tempo de voo (inteiro).
+    
     * Condições de voo: [He, V_t, beta, psiponto] (valores em m, m/s e graus)
     * tempo_voo: inteiro, ex: 300 segundos
 Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-se como argumentos, na ordem:
+    
     * delta_profundor (°)
     * delta_aileron (°)
     * delta_leme (°)
@@ -20,6 +22,7 @@ Chute inicial para o vetor x0 (condição de voo inputada no equilíbrio), dá-s
 
 ## SIMULAÇÃO DE DOUBLET
 Para simulação de doublet, mais 3 itens devem ser passados para simDinamica:
+    
     * vet_tempo: vetor com dados de tempo
     * doublet: vetor com dados de posição da superfície/potência do motor em graus e em %, respectivamente.
     * superfície_doublet: superfície perturbada: 'profundor', 'aileron', 'leme', 'motor'.
